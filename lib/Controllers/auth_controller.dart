@@ -72,8 +72,9 @@ class AuthController extends GetxController {
         options: Options(headers: headers),
         data: data,
       );
+      print(response.data);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 201) {
         var responseData = response.data;
         token.value = responseData['data']['token'];
         user.value = responseData['data']['user'];
@@ -89,8 +90,28 @@ class AuthController extends GetxController {
         Get.snackbar('Error', 'Registration failed');
       }
     } catch (e) {
-      Get.snackbar("Error", "Registration failed",
-          snackPosition: SnackPosition.BOTTOM);
+      if (e is DioException) {
+        if (e.response?.statusCode == 422) {
+          var errorData = e.response?.data['errors'];
+          // jika var errorMessage = errorData['errors']['email'][0];
+          // tersedia 
+          var errorMessage;
+          if(errorData['email'] != null){
+            errorMessage = errorData['email'][0];
+          } else if(errorData['password'] != null){
+            errorMessage = errorData['password'][0];
+          } else if(errorData['name'] != null){
+            errorMessage = errorData['name'][0];
+          } else {
+            errorMessage = 'Registration failed';
+          }
+          Get.snackbar('Error', errorMessage,
+              snackPosition: SnackPosition.BOTTOM);
+        } else {
+          Get.snackbar("Error", "Registration failed",
+              snackPosition: SnackPosition.BOTTOM);
+        }
+      }
     }
   }
 
@@ -107,8 +128,6 @@ class AuthController extends GetxController {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       var box = Hive.box('authBox');
       if (box.containsKey('token')) {
-
-
         token.value = box.get('token');
         isLoggedIn.value = true;
         // passing userBox to obx
